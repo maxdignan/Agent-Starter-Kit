@@ -1,21 +1,24 @@
 import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock
-from simple_agent import SimpleAgent, Tool
+from simple_agent import SimpleAgent, Tool, ModelClient
 
 @pytest.fixture
-def mock_openai_client():
-    client = Mock()
-    client.chat = Mock()
-    client.chat.completions = Mock()
-    client.chat.completions.create = AsyncMock()
+def mock_model_client():
+    client = Mock(spec=ModelClient)
+    client.generate_response = AsyncMock()
+    client.extract_tool_calls = AsyncMock()
+    client.get_last_response = Mock()
+    client.set_system_prompt = AsyncMock()
+    client.append_message = Mock()
+    client.append_tool_message = Mock()
     return client
 
 @pytest.mark.asyncio
-async def test_simple_agent_initialization(mock_openai_client):
-    agent = SimpleAgent(client=mock_openai_client)
+async def test_simple_agent_initialization(mock_model_client):
+    agent = SimpleAgent()
     assert agent.system_prompt is None
-    assert agent.model == "gpt-3.5-turbo"
+    assert agent.model_client is None
     assert agent.tools == []
     assert agent.before_tool_call_listener is None
     assert agent.after_tool_call_listener is None
@@ -23,21 +26,21 @@ async def test_simple_agent_initialization(mock_openai_client):
     assert agent.after_assistant_message_listener is None
 
 @pytest.mark.asyncio
-async def test_chainable_setters(mock_openai_client):
-    agent = SimpleAgent(client=mock_openai_client)
+async def test_chainable_setters(mock_model_client):
+    agent = SimpleAgent()
     
     # Test chaining setters
     agent = agent \
-        .setSystemPrompt("Test prompt") \
-        .setModel("gpt-4") \
-        .setTools([])
+        .set_system_prompt("Test prompt") \
+        .set_model_client(mock_model_client) \
+        .set_tools([])
     
     assert agent.system_prompt == "Test prompt"
-    assert agent.model == "gpt-4"
+    assert agent.model_client == mock_model_client
     assert agent.tools == []
 
 @pytest.mark.asyncio
-async def test_tool_execution(mock_openai_client):
+async def test_tool_execution(mock_model_client):
     async def test_tool(x: int) -> int:
         return x * 2
     
@@ -48,17 +51,17 @@ async def test_tool_execution(mock_openai_client):
     )
     
     # Configure mock response
-    mock_response = Mock()
-    mock_response.choices = [Mock()]
-    mock_response.choices[0].message = Mock()
-    mock_response.choices[0].message.content = "Test response"
-    mock_openai_client.chat.completions.create.return_value = mock_response
+    mock_model_client.generate_response.return_value = "Test response"
+    mock_model_client.extract_tool_calls.return_value = []
+    mock_model_client.get_last_response.return_value = "Test response"
     
-    agent = SimpleAgent(client=mock_openai_client).setTools([tool])
+    agent = SimpleAgent() \
+        .set_model_client(mock_model_client) \
+        .set_tools([tool])
     
     # Run the agent
     response = await agent.run("Test prompt")
     assert response == "Test response"
     
     # Verify the mock was called
-    mock_openai_client.chat.completions.create.assert_called_once() 
+    mock_model_client.generate_response.assert_called_once() 
