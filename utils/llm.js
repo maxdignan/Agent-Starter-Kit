@@ -1,7 +1,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const anthropic = new Anthropic({
-  apiKey: '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',
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 const run = async (systemPrompt, tools, messages) => {
