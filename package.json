@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.50.4"
   }
 }

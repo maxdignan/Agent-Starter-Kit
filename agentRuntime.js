@@ -26,7 +26,7 @@
 
 // Anytime that the messages array is updated, it should be written to a session-specific json messages file.
 
-const run = async (agent, userPrompt = null) => {
+exports.run = async (agent, userPrompt = null) => {
     if (userPrompt) {
         agent.addUserPrompt(userPrompt);
     }
@@ -38,6 +38,8 @@ const run = async (agent, userPrompt = null) => {
     const model = agent.getModel();
     const tools = agent.getTools();
 
+    console.log('Tools:', tools);
+
     const response = await model.run(systemPrompt, tools, agent.getMessages());
 
     agent.addMessage(response.getAssistantMessage());
@@ -46,20 +48,34 @@ const run = async (agent, userPrompt = null) => {
 
     if (toolCalls.length > 0) {
         const toolCallResults = await Promise.all(toolCalls.map(async (toolCall) => {
-            const tool = tools.find((t) => t.name === toolCall.name);
-            agent.addDeveloperLog(`Running tool: ${toolCall.name} with attributes: ${JSON.stringify(toolCall.attributes)} and inputs: ${JSON.stringify(toolCall.inputs)}`);
-            agent.addUserLog(`Running tool: ${toolCall.name} with attributes: ${JSON.stringify(toolCall.attributes)} and inputs: ${JSON.stringify(toolCall.inputs)}`);
-            const toolCallResult = await tool.run(toolCall.attributes, toolCall.inputs);
+            console.log('Tool Call:', toolCall);
+            console.log("Tool call inputs:", toolCall.input);
+
+            const tool = tools.find((t) => {
+                console.log('Tool:', t);
+                console.log('Tool name:', t.name);
+                console.log('Tool call name:', toolCall.name);
+                return t.name === toolCall.name;
+            });
+            if (!tool) {
+                console.error(`Tool ${toolCall.name} not found in available tools:`, tools.map(t => t.name));
+                throw new Error(`Tool ${toolCall.name} not found`);
+            }
+            console.log(`Running tool: ${toolCall.name}`);
+            agent.addDeveloperLog(`Running tool: ${toolCall.name} with inputs: ${JSON.stringify(toolCall.input)}`);
+            agent.addUserLog(`Running tool: ${toolCall.name} with inputs: ${JSON.stringify(toolCall.input)}`);
+            const toolCallResult = (await tool.run(toolCall.input)).getToolCallResponseMessage();
+            console.log('Tool call result:', toolCallResult);
             agent.addDeveloperLog(`Tool call ${toolCall.name} completed with result: ${JSON.stringify(toolCallResult)}`);
             agent.addUserLog(`Tool call ${toolCall.name} completed with result: ${JSON.stringify(toolCallResult)}`);
             return toolCallResult;
         }));
 
         toolCallResults.forEach((toolCallResult) => {
-            agent.addMessage(toolCallResult.getToolCallResponseMessage());
+            agent.addMessage(toolCallResult);
         });
 
-        return await run(agent);
+        return await exports.run(agent);
     } else {
         return agent;
     }

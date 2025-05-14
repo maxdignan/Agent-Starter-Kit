@@ -1,5 +1,6 @@
 // when you are parsing an agent, and you run across an agent that has not been parsed yet, you should parse it.
 const fs = require('fs');
+const path = require('path');
 // You can find the agent by the name of itself, without the "agent" suffix.
 // It will be in a folder called "agents" in the root directory, by default, unless otherwise specified.
 // It will be an xml file.
@@ -101,6 +102,30 @@ const parseTagAttributes = (tagString) => {
     return { name, attributes };
 }
 
+const loadToolMetadata = (toolName) => {
+    try {
+        // Remove 'Tool' suffix if present to get the actual tool name
+        const actualToolName = toolName.endsWith('Tool') ? toolName.slice(0, -4).toLowerCase() : toolName.toLowerCase();
+        const toolPath = path.join('tools', `${actualToolName}.js`);
+        
+        if (fs.existsSync(toolPath)) {
+            // Require the tool module
+            const toolModule = require(path.resolve(toolPath));
+            const toolFunction = toolModule[actualToolName];
+            
+            // Get description and input_schema if available
+            return {
+                description: toolFunction.description || '',
+                input_schema: toolFunction.input_schema || {}
+            };
+        }
+    } catch (error) {
+        console.error(`Error loading metadata for tool ${toolName}:`, error);
+    }
+    
+    return { description: '', input_schema: {} };
+};
+
 const parseTokens = (tokens) => {
     const rootNode = { children: [] };
     const stack = [rootNode];
@@ -112,11 +137,21 @@ const parseTokens = (tokens) => {
         if (token.type === 'openTag') {
             // Parse tag name and attributes
             const tag = parseTagAttributes(token.value);
+            const isTool = tag.name.endsWith('Tool');
+            let metadata = {};
+            
+            // If it's a tool, load its metadata
+            if (isTool) {
+                metadata = loadToolMetadata(tag.name);
+            }
+            
             const newNode = {
                 tag: tag.name,
                 attributes: tag.attributes,
                 children: [],
-                isTool: tag.name.endsWith('Tool')
+                isTool,
+                description: metadata.description || '',
+                input_schema: metadata.input_schema || {}
             };
             
             currentNode.children.push(newNode);
@@ -145,5 +180,6 @@ module.exports = {
     parseAgentFileByName,
     tokenize,
     parseTokens,
-    parseTagAttributes
+    parseTagAttributes,
+    loadToolMetadata
 };
