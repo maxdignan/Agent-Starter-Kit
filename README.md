@@ -39,35 +39,78 @@ cp .env.example .env
 
 ## Quick Start
 
-```javascript
-import { AgentRuntime } from './agentRuntime';
-import { Tool } from './tools';
+1. Create an agent definition in XML format (e.g., `test.xml`):
+```xml
+<TestAgent systemPrompt="You are a helpful assistant that can answer questions and help with tasks.">
+    <TimeTool />
+    <WeatherTool />
+</TestAgent>
+```
 
-// Create a tool
-const calculator = async (a, b, operation) => {
-  switch (operation) {
-    case 'add': return a + b;
-    case 'subtract': return a - b;
-    case 'multiply': return a * b;
-    case 'divide': return a / b;
-    default: throw new Error('Invalid operation');
-  }
+2. Create your tools (e.g., in `tools/weather.js`):
+```javascript
+const weather = async (attributes, inputs) => {
+    const weather = 'sunny, 70 degrees, and 5 mph winds';
+    return weather;
 };
 
-const calculatorTool = new Tool({
-  name: 'calculator',
-  description: 'A simple calculator',
-  function: calculator
-});
+weather.input_schema = {
+    type: 'object',
+    properties: {
+        location: { type: 'string', description: 'The location to get the weather in' }
+    }
+};
 
-// Create and configure the agent
-const agent = new AgentRuntime()
-  .setSystemPrompt('You are a helpful assistant')
-  .setTools([calculatorTool]);
+weather.description = 'Get the weather in a given location';
 
-// Run the agent
-const response = await agent.run('What is 5 plus 3?');
-console.log(response);
+module.exports = { weather };
+```
+
+3. Run your agent:
+```javascript
+const agentModule = require('./agentBase');
+const agentParser = require('./agentParser');
+const agentRuntime = require('./agentRuntime');
+
+// Parse and create the agent
+const parsedAgent = agentParser.parseAgentFileByName('test');
+const agent = new agentModule.Agent(parsedAgent);
+
+// Run the agent with a prompt
+agentRuntime.run(agent, "What's the weather and time in San Francisco?");
+```
+
+## Tools
+
+Tools are the building blocks of your agent's capabilities. Each tool is a JavaScript module that exports:
+- An async function that implements the tool's functionality
+- An `input_schema` object defining the expected inputs
+- A `description` string explaining the tool's purpose
+
+Example tool structure:
+```javascript
+const myTool = async (attributes, inputs) => {
+    // Tool implementation
+    return result;
+};
+
+myTool.input_schema = {
+    type: 'object',
+    properties: {
+        // Define your input parameters here
+    }
+};
+
+myTool.description = 'Description of what the tool does';
+
+module.exports = { myTool };
+```
+
+To use a tool in your agent, simply include it in your XML definition:
+```xml
+<MyAgent>
+    <MyTool />
+</MyAgent>
 ```
 
 ## Core Components
