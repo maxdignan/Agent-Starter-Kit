@@ -68,16 +68,12 @@ module.exports = { weather };
 
 3. Run your agent:
 ```javascript
-const agentModule = require('./agentBase');
 const agentParser = require('./agentParser');
-const agentRuntime = require('./agentRuntime');
 
 // Parse and create the agent
-const parsedAgent = agentParser.parseAgentFileByName('test');
-const agent = new agentModule.Agent(parsedAgent);
-
-// Run the agent with a prompt
-agentRuntime.run(agent, "What's the weather and time in San Francisco?");
+const agent = agentParser.parseAgentFileByName('test');
+const response = await agent.run("What's the weather and time in San Francisco?");
+console.log(response);
 ```
 
 ## Tools
