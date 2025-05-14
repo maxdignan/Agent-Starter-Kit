@@ -125,21 +125,12 @@ agent = while loop + llm + tools
    - No system prompt by default
    - No tools by default
 
-2. **Chainable Setters**
-   - `setSystemPrompt(message: string) -> AgentRuntime`
-   - `setModel(model: string) -> AgentRuntime`
-   - `setTools(tools: Tool[]) -> AgentRuntime`
-   - `setBeforeToolCallListener(callback: Function) -> AgentRuntime`
-   - `setAfterToolCallListener(callback: Function) -> AgentRuntime`
-   - `setBeforeAssistantMessageListener(callback: Function) -> AgentRuntime`
-   - `setAfterAssistantMessageListener(callback: Function) -> AgentRuntime`
-
-3. **Core Methods**
+2. **Core Methods**
    - `run(prompt: string) -> Promise<string>`: Main execution method
 
 ## Examples
 
-Check out the `examples/` directory for more usage examples.
+Check out the `examples/` directory for more usage examples. Also, check out index.js file for a more complete example.
 
 ## Contributing
 
