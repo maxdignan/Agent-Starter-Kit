@@ -1,0 +1,149 @@
+// when you are parsing an agent, and you run across an agent that has not been parsed yet, you should parse it.
+const fs = require('fs');
+// You can find the agent by the name of itself, without the "agent" suffix.
+// It will be in a folder called "agents" in the root directory, by default, unless otherwise specified.
+// It will be an xml file.
+// If the name of the tag ends with "Tool", then it should be parsed as a tool.
+// Tools files should be in the "tools" directory, by default, unless otherwise specified.
+// Tools can be any filetype.
+// Agents will have children tags that are tools and other agents. When there are other agents as tools, you should parse them recursively. They should also be treated - at runtime - as tools.
+
+// parsing xml should be simple.
+// It should be a matter of reading the file,
+// then parsing to the tag, its attributes as key value pairs (in the case of an attribute that has only the key, assume the value is boolean true)
+// then all of its children. Those should be parsed recursively in the same manner.
+
+// the parsed agent should be returned as a javascript object.
+
+const parseAgentFileByName = (name) => {
+    const agentFile = fs.readFileSync(`agents/${name}.xml`, 'utf8');
+    const agent = parse(agentFile);
+    return agent;
+}
+
+const parse = (file) => {
+    const json = xmlParse(file);
+    return json;
+}
+
+// this function will parse the xml file into a javascript object
+const xmlParse = (fileText) => {
+    const tokens = tokenize(fileText);
+    const json = parseTokens(tokens);
+    return json;
+}
+
+const tokenize = (fileText) => {
+    const tokens = [];
+    let i = 0;
+    
+    while (i < fileText.length) {
+        if (fileText[i] === '<') {
+            if (fileText[i+1] === '/') {
+                // Closing tag
+                const end = fileText.indexOf('>', i);
+                tokens.push({
+                    type: 'closeTag',
+                    value: fileText.substring(i, end + 1)
+                });
+                i = end + 1;
+            } else {
+                // Opening tag
+                const end = fileText.indexOf('>', i);
+                tokens.push({
+                    type: 'openTag',
+                    value: fileText.substring(i, end + 1)
+                });
+                i = end + 1;
+            }
+        } else {
+            // Text content
+            const end = fileText.indexOf('<', i);
+            if (end === -1) break;
+            const text = fileText.substring(i, end).trim();
+            if (text) {
+                tokens.push({
+                    type: 'text',
+                    value: text
+                });
+            }
+            i = end;
+        }
+    }
+    
+    return tokens;
+}
+
+const parseTagAttributes = (tagString) => {
+    // Remove < > brackets and split by first space
+    const content = tagString.slice(1, -1).trim();
+    const firstSpace = content.indexOf(' ');
+    
+    if (firstSpace === -1) {
+        // No attributes
+        return { name: content, attributes: {} };
+    }
+    
+    const name = content.slice(0, firstSpace);
+    const attributesString = content.slice(firstSpace + 1);
+    
+    const attributes = {};
+    // Parse attributes using regex
+    const attrRegex = /([\w-]+)(?:="([^"]*)"|='([^']*)'|=(\S+))?/g;
+    let match;
+    
+    while ((match = attrRegex.exec(attributesString)) !== null) {
+        const key = match[1];
+        const value = match[2] || match[3] || match[4] || true;
+        attributes[key] = value;
+    }
+    
+    return { name, attributes };
+}
+
+const parseTokens = (tokens) => {
+    const rootNode = { children: [] };
+    const stack = [rootNode];
+    let currentNode = rootNode;
+    
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        
+        if (token.type === 'openTag') {
+            // Parse tag name and attributes
+            const tag = parseTagAttributes(token.value);
+            const newNode = {
+                tag: tag.name,
+                attributes: tag.attributes,
+                children: [],
+                isTool: tag.name.endsWith('Tool')
+            };
+            
+            currentNode.children.push(newNode);
+            stack.push(newNode);
+            currentNode = newNode;
+        } 
+        else if (token.type === 'closeTag') {
+            stack.pop();
+            currentNode = stack[stack.length - 1];
+        } 
+        else if (token.type === 'text') {
+            currentNode.children.push({
+                type: 'text',
+                value: token.value
+            });
+        }
+    }
+    
+    return rootNode.children[0] || {};
+}
+
+// Export functions for testing
+module.exports = {
+    xmlParse,
+    parse,
+    parseAgentFileByName,
+    tokenize,
+    parseTokens,
+    parseTagAttributes
+};

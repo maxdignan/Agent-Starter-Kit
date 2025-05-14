@@ -1,0 +1,37 @@
+<!-- inside coding.agent.xml file -->
+<CodingAgent>
+    <ResearchAgent systemPrompt="Research the Internet for information" summarizeContext="Summarize the context of the research" />
+    <EditFileTool />
+    <ReadFileTool />
+</CodingAgent>
+
+<!-- inside research.agent.xml file -->
+<ResearchAgent description="Researches the Internet for information" summarizeResponse="Summarize the findings of the research" />
+    <SerpApiTool />
+    <WebpageToMarkdownTool />
+</ResearchAgent>
+
+<!-- inside the file that instantiates the agents in js -->
+const AgentStarterKit = require('@agent-starter-kit/agent-starter-kit');
+
+// searches the ./agents directory for the coding.agent file
+const codingAgent = await AgentStarterKit.findAgentByName('CodingAgent');
+
+await codingAgent.run("Please write a simple python web app that is the a beautiful scientific calculator.");
+
+<!-- inside edit_file.tool.xml file -->
+<!-- <EditFileTool>
+    <javascript>
+        const fs = require('fs');
+        const path = require('path');
+
+        module.exports = {
+            edit_file: (filePath, oldContent, newContent) => {
+                const filePath = path.join(__dirname, filePath);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const updatedContent = fileContent.replace(oldContent, newContent);
+                fs.writeFileSync(filePath, updatedContent);
+            }
+        }
+    </javascript>
+</EditFileTool> -->
