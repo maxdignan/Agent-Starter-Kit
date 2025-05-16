@@ -5,7 +5,7 @@ const agentModule = require('./agentBase');
 const agentParser = require('./agentParser');
 const agentRuntime = require('./agentRuntime');
 
-const parsedAgent = agentParser.parseAgentFileByName('test');
+const parsedAgent = agentParser.parseAgentFileByName('another_test');
 const agent = new agentModule.Agent(parsedAgent);
 
 agentRuntime.run(agent, "What's the weather and time in San Francisco?");

@@ -40,54 +40,54 @@ class Agent {
     }
 
     getTools() {
-        const tools = this.children.filter(child => child.isTool || child.tag?.endsWith('Tool'));
+        const tools = this.children.filter(child => child.isTool || child.tag?.endsWith('Tool') || child.isAgent || child.tag?.endsWith('Agent'));
         return tools.map(tool => {
-            const toolName = tool.tag.replace('Tool', '').toLowerCase();
-            const toolModule = require(`./tools/${toolName}`);
-            return {
-                name: tool.tag,
-                description: tool.description || toolModule[toolName].description || '',
-                input_schema: tool.input_schema || toolModule[toolName].input_schema || {},
-                // (attributes, inputs) -> [is_error, result (or error message)]
-                run: async (attributes, inputs) => {
-                    try {
-                        const result= await toolModule[toolName](attributes, inputs);
-                        return [false, result];
-                        // console.log("tool result:", result);
-                        // return {
-                        //     getToolCallResponseMessage: (toolCallId) => ({
-                        //         role: 'user',
-                        //         content: [
-                        //             {
-                        //                 type: 'tool_result',
-                        //                 tool_use_id: toolCallId,
-                        //                 content: {
-                        //                     type: "text",
-                        //                     text: typeof result === 'string' ? result : JSON.stringify(result)
-                        //                 }
-                        //             }
-                        //         ]
-                        //     })
-                        // };
-                    } catch (error) {
-                        console.error(`Error running tool ${tool.tag}:`, error);
-                        return [true, error.message];
-                        // return {
-                        //     getToolCallResponseMessage: (toolCallId) => ({
-                        //         role: 'user',
-                        //         content: [
-                        //             {
-                        //                 type: 'tool_result',
-                        //                 tool_use_id: toolCallId,
-                        //                 content: error.message,
-                        //                 is_error: true
-                        //             }
-                        //         ]
-                        //     })
-                        // };
+            if (tool.isAgent || tool.tag?.endsWith('Agent')) {
+                // For agent children, create an AgentTool instance
+                const agentName = tool.tag.replace('Agent', '');
+                return {
+                    name: `${agentName}AgentTool`,
+                    description: `Runs the ${agentName} agent`,
+                    input_schema: {
+                        type: "object",
+                        properties: {
+                            prompt: {
+                                type: "string",
+                                description: `The prompt to send to the ${agentName} agent`
+                            }
+                        },
+                        required: ["prompt"]
+                    },
+                    run: async (inputs) => {
+                        try {
+                            const toolModule = require('./tools/agentTool');
+                            const result = await toolModule.agentTool(tool, inputs);
+                            return [false, result];
+                        } catch (error) {
+                            console.error(`Error running agent ${tool.name}:`, error);
+                            return [true, error.message];
+                        }
                     }
-                }
-            };
+                };
+            } else {
+                // Handle regular tools as before
+                const toolName = tool.tag.replace('Tool', '').toLowerCase();
+                const toolModule = require(`./tools/${toolName}`);
+                return {
+                    name: tool.tag,
+                    description: tool.description || toolModule[toolName].description || '',
+                    input_schema: tool.input_schema || toolModule[toolName].input_schema || {},
+                    run: async (attributes, inputs) => {
+                        try {
+                            const result = await toolModule[toolName](attributes, inputs);
+                            return [false, result];
+                        } catch (error) {
+                            console.error(`Error running tool ${tool.tag}:`, error);
+                            return [true, error.message];
+                        }
+                    }
+                };
+            }
         });
     }
 

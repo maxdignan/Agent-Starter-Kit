@@ -17,7 +17,13 @@ const path = require('path');
 // the parsed agent should be returned as a javascript object.
 
 const parseAgentFileByName = (name) => {
-    const agentFile = fs.readFileSync(`agents/${name}.xml`, 'utf8');
+    // if the name ends with "agent, or "Agent", replace ageent with empty string
+    if (name.endsWith("agent") || name.endsWith("Agent")) {
+        name = name.replace("agent", "").replace("Agent", "");
+    }
+    // always lowercase the first letter of the name
+    name = name.charAt(0).toLowerCase() + name.slice(1);
+    const agentFile = fs.readFileSync(`agents/${dasherize(name)}.xml`, 'utf8');
     const agent = parse(agentFile);
     return agent;
 }
@@ -126,10 +132,39 @@ const loadToolMetadata = (toolName) => {
     return { description: '', input_schema: {} };
 };
 
+const loadAgentMetadata = (agentName, tag, isRoot = false) => {
+    console.log("here:", {agentName, tag, isRoot})
+    // Don't load metadata for the root agent since we're already parsing its file
+    if (isRoot) {
+        return {
+            description: tag.attributes.description || '',
+            input_schema: {}
+        };
+    }
+
+    const agentMetadata = {
+        tag: tag.name,
+        attributes: tag.attributes,
+        children: [],
+        isTool: false,
+        isAgent: true,
+        description: tag.attributes.description || '',
+        // this should be input_schema for a tool for claude that just takes a prompt
+        input_schema: {
+            type: "object",
+            properties: {
+                prompt: { type: "string" }
+            }
+        }
+    };
+    return agentMetadata;
+}
+
 const parseTokens = (tokens) => {
     const rootNode = { children: [] };
     const stack = [rootNode];
     let currentNode = rootNode;
+    let isRoot = true;  // Track if we're parsing the root agent
     
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
@@ -138,11 +173,16 @@ const parseTokens = (tokens) => {
             // Parse tag name and attributes
             const tag = parseTagAttributes(token.value);
             const isTool = tag.name.endsWith('Tool');
+            const isAgent = tag.name.endsWith('Agent');
             let metadata = {};
             
             // If it's a tool, load its metadata
             if (isTool) {
                 metadata = loadToolMetadata(tag.name);
+            }
+
+            if (isAgent) {
+                metadata = loadAgentMetadata(tag.name, tag, isRoot);
             }
             
             const newNode = {
@@ -150,6 +190,7 @@ const parseTokens = (tokens) => {
                 attributes: tag.attributes,
                 children: [],
                 isTool,
+                isAgent,
                 description: metadata.description || '',
                 input_schema: metadata.input_schema || {}
             };
@@ -157,6 +198,7 @@ const parseTokens = (tokens) => {
             currentNode.children.push(newNode);
             stack.push(newNode);
             currentNode = newNode;
+            isRoot = false;  // After first tag, we're no longer at root
         } 
         else if (token.type === 'closeTag') {
             stack.pop();
@@ -171,6 +213,10 @@ const parseTokens = (tokens) => {
     }
     
     return rootNode.children[0] || {};
+}
+
+const dasherize = (name) => {
+    return name.replace(/([A-Z])/g, '-$1').toLowerCase();
 }
 
 // Export functions for testing

@@ -1,0 +1,4 @@
+<AnotherTestAgent systemPrompt="You are a helpful assistant that can answer questions and help with tasks.">
+    <TimeTool></TimeTool>
+    <WeatherAgent description="You are a helpful assistant that can answer questions and help with the weather." />
+</AnotherTestAgent>
