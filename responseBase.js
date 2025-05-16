@@ -48,7 +48,7 @@ class ToolCallResult {
     getToolCallResponseMessage() {
         return {
             role: 'tool',
-            tool_call_id: this.id,
+            tool_call_id: this.name,
             content: this.error ? JSON.stringify({ error: this.error }) : JSON.stringify(this.result)
         };
     }

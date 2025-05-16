@@ -10,6 +10,11 @@ class Agent {
         this.messages = [];
         this.developerLogs = [];
         this.userLogs = [];
+        this.sessionId = Date.now();
+    }
+
+    getSessionId() {
+        return this.sessionId;
     }
 
     addUserPrompt(userPrompt) {
@@ -43,28 +48,43 @@ class Agent {
                 name: tool.tag,
                 description: tool.description || toolModule[toolName].description || '',
                 input_schema: tool.input_schema || toolModule[toolName].input_schema || {},
+                // (attributes, inputs) -> [is_error, result (or error message)]
                 run: async (attributes, inputs) => {
                     try {
-                        const result = await toolModule[toolName](attributes, inputs);
-                        return {
-                            getToolCallResponseMessage: () => ({
-                                role: 'user',
-                                tool_call_id: tool.id,
-                                content: JSON.stringify(result),
-                            })
-                        };
+                        const result= await toolModule[toolName](attributes, inputs);
+                        return [false, result];
+                        // console.log("tool result:", result);
+                        // return {
+                        //     getToolCallResponseMessage: (toolCallId) => ({
+                        //         role: 'user',
+                        //         content: [
+                        //             {
+                        //                 type: 'tool_result',
+                        //                 tool_use_id: toolCallId,
+                        //                 content: {
+                        //                     type: "text",
+                        //                     text: typeof result === 'string' ? result : JSON.stringify(result)
+                        //                 }
+                        //             }
+                        //         ]
+                        //     })
+                        // };
                     } catch (error) {
                         console.error(`Error running tool ${tool.tag}:`, error);
-                        return {
-                            getToolCallResponseMessage: () => ({
-                                role: 'user',
-                                tool_call_id: tool.id,
-                                content: JSON.stringify({ error: {
-                                    type: "tool_error",
-                                    message: error.message,
-                                } })
-                            })
-                        };
+                        return [true, error.message];
+                        // return {
+                        //     getToolCallResponseMessage: (toolCallId) => ({
+                        //         role: 'user',
+                        //         content: [
+                        //             {
+                        //                 type: 'tool_result',
+                        //                 tool_use_id: toolCallId,
+                        //                 content: error.message,
+                        //                 is_error: true
+                        //             }
+                        //         ]
+                        //     })
+                        // };
                     }
                 }
             };
@@ -77,17 +97,37 @@ class Agent {
 
     addMessage(message) {
         this.messages.push(message);
+        // make messages directory if it doesn't exist  
+        const fs = require('fs');
+        const messagesDir = `messages`;
+        if (!fs.existsSync(messagesDir)) {
+            fs.mkdirSync(messagesDir);
+        }
+        const messagesFile = `messages/messages-${this.name}-${this.sessionId}.json`;
+        fs.writeFileSync(messagesFile, JSON.stringify(this.messages, null, 2));
     }
 
     // this should just write to the developer log file
     addDeveloperLog(log) {
         const fs = require('fs');
-        fs.appendFileSync('developer-log.md', `${log}\n`);
+        // make logs directory if it doesn't exist
+        const logsDir = `logs`;
+        if (!fs.existsSync(logsDir)) {
+            fs.mkdirSync(logsDir);
+        }
+        const developerLogFile = `logs/developer-log-${this.name}-${this.sessionId}.md`;
+        fs.appendFileSync(developerLogFile, `${log}\n`);
     }
 
     addUserLog(log) {
         const fs = require('fs');
-        fs.appendFileSync('user-log.md', `${log}\n`);
+        // make logs directory if it doesn't exist
+        const logsDir = `logs`;
+        if (!fs.existsSync(logsDir)) {
+            fs.mkdirSync(logsDir);
+        }
+        const userLogFile = `logs/user-log-${this.name}-${this.sessionId}.md`;
+        fs.appendFileSync(userLogFile, `${log}\n`);
     }
 }
 

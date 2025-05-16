@@ -39,3 +39,9 @@ ENV/
 .vscode/
 *.swp
 *.swo 
+
+# Logs
+logs/
+messages/
+
+node_modules/

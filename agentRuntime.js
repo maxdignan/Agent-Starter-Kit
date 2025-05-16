@@ -42,7 +42,7 @@ exports.run = async (agent, userPrompt = null) => {
 
     const response = await model.run(systemPrompt, tools, agent.getMessages());
 
-    agent.addMessage(response.getAssistantMessage());
+    agent.addMessage(response.getAssistantMessageFromLLM());
 
     const toolCalls = response.getToolCalls();
 
@@ -64,19 +64,96 @@ exports.run = async (agent, userPrompt = null) => {
             console.log(`Running tool: ${toolCall.name}`);
             agent.addDeveloperLog(`Running tool: ${toolCall.name} with inputs: ${JSON.stringify(toolCall.input)}`);
             agent.addUserLog(`Running tool: ${toolCall.name} with inputs: ${JSON.stringify(toolCall.input)}`);
-            const toolCallResult = (await tool.run(toolCall.input)).getToolCallResponseMessage();
+            const toolCallResult = (await tool.run(toolCall.input));
             console.log('Tool call result:', toolCallResult);
             agent.addDeveloperLog(`Tool call ${toolCall.name} completed with result: ${JSON.stringify(toolCallResult)}`);
             agent.addUserLog(`Tool call ${toolCall.name} completed with result: ${JSON.stringify(toolCallResult)}`);
-            return toolCallResult;
+            return {
+                ...toolCall,
+                rawResult: toolCallResult,
+            }
         }));
 
-        toolCallResults.forEach((toolCallResult) => {
-            agent.addMessage(toolCallResult);
-        });
+        console.log('Tool call results:', toolCallResults);
+        const combinedToolResultMessage = mapRawToolCallResultsToAUserMessage(toolCallResults);
+        console.log('Combined tool result message:', JSON.stringify(combinedToolResultMessage, null, 2));
+        
+        agent.addMessage(combinedToolResultMessage);
 
+        // Call the LLM again to inform it of the tool results
         return await exports.run(agent);
     } else {
         return agent;
+    }
+}
+
+/*
+ This takes an array of 
+ {
+    type: 'tool_use',
+    id: 'toolu_01DGSjv1Nv2LVwBNRwe6CcnN',
+    name: 'TimeTool',
+    input: { timezone: 'America/Los_Angeles' },
+    rawResult: [ false, '2025-05-15T20:37:31.680Z' ]
+  }
+  and maps it to a user message.
+
+ success case:
+
+ // console.log("tool result:", result);
+                        // return {
+                        //     getToolCallResponseMessage: (toolCallId) => ({
+                        //         role: 'user',
+                        //         content: [
+                        //             {
+                        //                 type: 'tool_result',
+                        //                 tool_use_id: toolCallId,
+                        //                 content: {
+                        //                     type: "text",
+                        //                     text: typeof result === 'string' ? result : JSON.stringify(result)
+                        //                 }
+                        //             }
+                        //         ]
+                        //     })
+                        // };
+
+ error case:
+ // return {
+                        //     getToolCallResponseMessage: (toolCallId) => ({
+                        //         role: 'user',
+                        //         content: [
+                        //             {
+                        //                 type: 'tool_result',
+                        //                 tool_use_id: toolCallId,
+                        //                 content: error.message,
+                        //                 is_error: true
+                        //             }
+                        //         ]
+                        //     })
+                        // };
+*/
+const mapRawToolCallResultsToAUserMessage = (rawToolCallResults) => {
+    return {
+        role: 'user',
+        content: rawToolCallResults.map(t => {
+            const {type, id, name, input, rawResult: [is_error, result]} = t;
+            if (!is_error) {
+                return {
+                    type: 'tool_result',
+                    tool_use_id: id,
+                    content: [{
+                        type: 'text',
+                        text: result
+                    }]
+                }
+            } else {
+                return {
+                    type: 'tool_result',
+                    tool_use_id: id,
+                    content: result,
+                    is_error: true
+                }
+            }
+        })
     }
 }
