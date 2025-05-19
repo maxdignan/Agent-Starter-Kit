@@ -1,0 +1,19 @@
+<CodingTestAgent systemPrompt="You are a helpful assistant that can answer questions and help with tasks.">
+    <EditFileTool />
+    <ReadFileTool />
+    <RunShellCommandTool />
+    <GitCommitTool />
+    <GitAddTool />
+    <GitPushTool />
+    <GitStatusTool />
+    <FileExistsTool />
+    <FileSummaryTool />
+    <FileContentTool />
+    <ListFilesTool />
+    <GrepTool />
+    <MakeDirectoryTool />
+    <RemoveFileTool />
+    <MoveFileTool />
+    <WriteMemoryTool />
+    <ReadMemoryTool />
+</CodingTestAgent>

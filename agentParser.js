@@ -40,12 +40,22 @@ const tokenize = (fileText) => {
                 });
                 i = end + 1;
             } else {
-                // Opening tag
+                // Opening tag or self-closing tag
                 const end = fileText.indexOf('>', i);
-                tokens.push({
-                    type: 'openTag',
-                    value: fileText.substring(i, end + 1)
-                });
+                const tagContent = fileText.substring(i, end + 1);
+                
+                // Check if it's a self-closing tag
+                if (tagContent.endsWith('/>')) {
+                    tokens.push({
+                        type: 'selfClosingTag',
+                        value: tagContent
+                    });
+                } else {
+                    tokens.push({
+                        type: 'openTag',
+                        value: tagContent
+                    });
+                }
                 i = end + 1;
             }
         } else {
@@ -96,13 +106,27 @@ const parseTagAttributes = (tagString) => {
 const loadToolMetadata = (toolName) => {
     try {
         // Remove 'Tool' suffix if present to get the actual tool name
-        const actualToolName = toolName.endsWith('Tool') ? toolName.slice(0, -4).toLowerCase() : toolName.toLowerCase();
-        const toolPath = path.join('tools', `${actualToolName}.js`);
+        const actualToolName = toolName.endsWith('Tool') ? toolName.slice(0, -4) : toolName;
+
+        const actualToolNameWithLowerCaseFirstLetter = actualToolName.charAt(0).toLowerCase() + actualToolName.slice(1);
+
+        // let's take a pascal case tool name and convert it to snake case
+        // first letter needs to be made lowercase just prior to the conversion
+        const snakeCaseToolName = actualToolNameWithLowerCaseFirstLetter.replace(/([A-Z])/g, '_$1').toLowerCase();
+
+
+        console.log("snakeCaseToolName:", snakeCaseToolName)
+
+        const toolPath = path.join(__dirname, 'tools', `${snakeCaseToolName}.js`);
+
+        console.log("toolPath:", toolPath)
         
         if (fs.existsSync(toolPath)) {
+            console.log("toolPath2:", toolPath)
             // Require the tool module
-            const toolModule = require(path.resolve(toolPath));
-            const toolFunction = toolModule[actualToolName];
+            const toolModule = require(toolPath);
+            console.log("toolModule:", toolModule)
+            const toolFunction = toolModule[actualToolNameWithLowerCaseFirstLetter];
             
             // Get description and input_schema if available
             return {
@@ -153,7 +177,7 @@ const parseTokens = (tokens) => {
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
         
-        if (token.type === 'openTag') {
+        if (token.type === 'openTag' || token.type === 'selfClosingTag') {
             // Parse tag name and attributes
             const tag = parseTagAttributes(token.value);
             const isTool = tag.name.endsWith('Tool');
@@ -180,8 +204,12 @@ const parseTokens = (tokens) => {
             };
             
             currentNode.children.push(newNode);
-            stack.push(newNode);
-            currentNode = newNode;
+            
+            // Only push to stack and update currentNode if it's not a self-closing tag
+            if (token.type === 'openTag') {
+                stack.push(newNode);
+                currentNode = newNode;
+            }
             isRoot = false;  // After first tag, we're no longer at root
         } 
         else if (token.type === 'closeTag') {

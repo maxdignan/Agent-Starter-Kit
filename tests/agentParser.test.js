@@ -23,10 +23,140 @@ describe('XML Parser', () => {
                         tag: 'ReadFileTool',
                         attributes: {},
                         children: [],
-                        isTool: true
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Read a file',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to read'
+                                }
+                            }
+                        }
                     }
                 ],
-                isTool: false
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
+            });
+        });
+
+        test('handles self-closing tags correctly', () => {
+            const xmlString = '<CodingAgent><ReadFileTool /><EditFileTool /></CodingAgent>';
+            const result = xmlParse(xmlString);
+            
+            expect(result).toEqual({
+                tag: 'CodingAgent',
+                attributes: {},
+                children: [
+                    {
+                        tag: 'ReadFileTool',
+                        attributes: {},
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Read a file',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to read'
+                                }
+                            }
+                        }
+                    },
+                    {
+                        tag: 'EditFileTool',
+                        attributes: {},
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Edit a file. If wanting to create a new file, make sure to include the oldContent as an empty string. The newContent should be the content of the new file, in that case.',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to edit'
+                                },
+                                oldContent: {
+                                    type: 'string',
+                                    description: 'The content to replace'
+                                },
+                                newContent: {
+                                    type: 'string',
+                                    description: 'The content to replace the old content with'
+                                }
+                            }
+                        }
+                    }
+                ],
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
+            });
+        });
+
+        test('handles self-closing tags with attributes', () => {
+            const xmlString = '<CodingAgent><ReadFileTool priority="high" /><EditFileTool /></CodingAgent>';
+            const result = xmlParse(xmlString);
+            
+            expect(result).toEqual({
+                tag: 'CodingAgent',
+                attributes: {},
+                children: [
+                    {
+                        tag: 'ReadFileTool',
+                        attributes: { priority: 'high' },
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Read a file',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to read'
+                                }
+                            }
+                        }
+                    },
+                    {
+                        tag: 'EditFileTool',
+                        attributes: {},
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Edit a file. If wanting to create a new file, make sure to include the oldContent as an empty string. The newContent should be the content of the new file, in that case.',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to edit'
+                                },
+                                oldContent: {
+                                    type: 'string',
+                                    description: 'The content to replace'
+                                },
+                                newContent: {
+                                    type: 'string',
+                                    description: 'The content to replace the old content with'
+                                }
+                            }
+                        }
+                    }
+                ],
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
             });
         });
 
@@ -45,19 +175,31 @@ describe('XML Parser', () => {
                         tag: 'ReadFileTool',
                         attributes: { priority: 'high' },
                         children: [],
-                        isTool: true
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Read a file',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to read'
+                                }
+                            }
+                        }
                     }
                 ],
-                isTool: false
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
             });
         });
 
         test('parses nested tags correctly', () => {
-            // Use a simpler XML string for clearer debugging
             const xmlString = '<CodingAgent><ResearchAgent><SerpApiTool /></ResearchAgent><EditFileTool /></CodingAgent>';
             const result = xmlParse(xmlString);
             
-            // Update test to match the actual parser implementation
             expect(result).toEqual({
                 tag: 'CodingAgent',
                 attributes: {},
@@ -70,19 +212,54 @@ describe('XML Parser', () => {
                                 tag: 'SerpApiTool',
                                 attributes: {},
                                 children: [],
-                                isTool: true
-                            },
-                            {
-                                tag: 'EditFileTool',
-                                attributes: {},
-                                children: [],
-                                isTool: true
+                                isTool: true,
+                                isAgent: false,
+                                description: '',
+                                input_schema: {}
                             }
                         ],
-                        isTool: false
+                        isTool: false,
+                        isAgent: true,
+                        description: '',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                prompt: {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    },
+                    {
+                        tag: 'EditFileTool',
+                        attributes: {},
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Edit a file. If wanting to create a new file, make sure to include the oldContent as an empty string. The newContent should be the content of the new file, in that case.',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to edit'
+                                },
+                                oldContent: {
+                                    type: 'string',
+                                    description: 'The content to replace'
+                                },
+                                newContent: {
+                                    type: 'string',
+                                    description: 'The content to replace the old content with'
+                                }
+                            }
+                        }
                     }
                 ],
-                isTool: false
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
             });
         });
 
@@ -102,10 +279,32 @@ describe('XML Parser', () => {
                         tag: 'EditFileTool',
                         attributes: {},
                         children: [],
-                        isTool: true
+                        isTool: true,
+                        isAgent: false,
+                        description: 'Edit a file. If wanting to create a new file, make sure to include the oldContent as an empty string. The newContent should be the content of the new file, in that case.',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                file: {
+                                    type: 'string',
+                                    description: 'The file to edit'
+                                },
+                                oldContent: {
+                                    type: 'string',
+                                    description: 'The content to replace'
+                                },
+                                newContent: {
+                                    type: 'string',
+                                    description: 'The content to replace the old content with'
+                                }
+                            }
+                        }
                     }
                 ],
-                isTool: false
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
             });
         });
     });
@@ -119,7 +318,10 @@ describe('XML Parser', () => {
                 tag: 'CodingAgent',
                 attributes: {},
                 children: [],
-                isTool: false
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
             });
         });
     });
@@ -137,9 +339,6 @@ describe('XML Parser', () => {
             
             const result = xmlParse(xmlString);
             
-            // Log the actual structure for debugging
-            console.log(JSON.stringify(result, null, 2));
-            
             // Update test to match the actual parser implementation
             expect(result).toEqual({
                 tag: 'TestAgent',
@@ -150,48 +349,65 @@ describe('XML Parser', () => {
                 children: [
                     {
                         tag: 'SearchTool',
-                        attributes: {
-                            priority: 'high'
-                        },
+                        attributes: { priority: 'high' },
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: '',
+                        input_schema: {}
+                    },
+                    {
+                        tag: 'CalculatorTool',
+                        attributes: { precision: 'double' },
+                        children: [],
+                        isTool: true,
+                        isAgent: false,
+                        description: '',
+                        input_schema: {}
+                    },
+                    {
+                        tag: 'NestedAgent',
+                        attributes: {},
                         children: [
                             {
-                                tag: 'CalculatorTool',
-                                attributes: {
-                                    precision: 'double'
-                                },
-                                children: [
-                                    {
-                                        tag: 'NestedAgent',
-                                        attributes: {},
-                                        children: [
-                                            {
-                                                tag: 'InfoTool',
-                                                attributes: {},
-                                                children: [],
-                                                isTool: true
-                                            },
-                                            {
-                                                tag: 'TextContent',
-                                                attributes: {},
-                                                children: [
-                                                    {
-                                                        type: 'text',
-                                                        value: 'This is some text content'
-                                                    }
-                                                ],
-                                                isTool: false
-                                            }
-                                        ],
-                                        isTool: false
-                                    }
-                                ],
-                                isTool: true
+                                tag: 'InfoTool',
+                                attributes: {},
+                                children: [],
+                                isTool: true,
+                                isAgent: false,
+                                description: '',
+                                input_schema: {}
                             }
                         ],
-                        isTool: true
+                        isTool: false,
+                        isAgent: true,
+                        description: '',
+                        input_schema: {
+                            type: 'object',
+                            properties: {
+                                prompt: { type: 'string' }
+                            }
+                        }
+                    },
+                    {
+                        tag: 'TextContent',
+                        attributes: {},
+                        children: [
+                            {
+                                type: 'text',
+                                value: 'This is some text content'
+                            }
+                        ],
+                        isTool: false,
+                        isAgent: false,
+                        description: '',
+                        input_schema: {}
                     }
                 ],
-                isTool: false
+                isTool: false,
+                isAgent: true,
+                description: '',
+                input_schema: {}
             });
         });
     });

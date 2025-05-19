@@ -1,5 +1,5 @@
 const llm = require('./utils/llm');
-
+const path = require('path');
 class Agent {
     constructor(parsed) {
         this.tag = parsed.tag;
@@ -40,6 +40,7 @@ class Agent {
     getTools() {
         const tools = this.children.filter(child => child.isTool || child.tag?.endsWith('Tool') || child.isAgent || child.tag?.endsWith('Agent'));
         return tools.map(tool => {
+            console.log("tool:", tool)
             if (tool.isAgent || tool.tag?.endsWith('Agent')) {
                 // For agent children, create an AgentTool instance
                 const agentName = tool.tag.replace('Agent', '');
@@ -69,15 +70,20 @@ class Agent {
                 };
             } else {
                 // Handle regular tools as before
-                const toolName = tool.tag.replace('Tool', '').toLowerCase();
-                const toolModule = require(`./tools/${toolName}`);
+                const toolName = tool.tag.replace('Tool', '');
+                const toolNameWithLowerCaseFirstLetter = toolName.charAt(0).toLowerCase() + toolName.slice(1);
+                const toolNameSnakeCase = toolNameWithLowerCaseFirstLetter.replace(/([A-Z])/g, '_$1').toLowerCase();
+                console.log("fsgs:", {toolName, toolNameWithLowerCaseFirstLetter, toolNameSnakeCase})
+                const toolPath = path.join(__dirname, 'tools', `${toolNameSnakeCase}.js`);
+                const toolModule = require(toolPath);
                 return {
                     name: tool.tag,
                     description: tool.description || toolModule[toolName].description || '',
                     input_schema: tool.input_schema || toolModule[toolName].input_schema || {},
-                    run: async (attributes, inputs) => {
+                    run: async (inputs) => {
                         try {
-                            const result = await toolModule[toolName](attributes, inputs);
+                            console.log("toolModule:", toolModule)
+                            const result = await toolModule[toolNameWithLowerCaseFirstLetter](tool, inputs);
                             return [false, result];
                         } catch (error) {
                             console.error(`Error running tool ${tool.tag}:`, error);
