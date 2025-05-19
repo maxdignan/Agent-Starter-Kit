@@ -1,20 +1,5 @@
-// when you are parsing an agent, and you run across an agent that has not been parsed yet, you should parse it.
 const fs = require('fs');
 const path = require('path');
-// You can find the agent by the name of itself, without the "agent" suffix.
-// It will be in a folder called "agents" in the root directory, by default, unless otherwise specified.
-// It will be an xml file.
-// If the name of the tag ends with "Tool", then it should be parsed as a tool.
-// Tools files should be in the "tools" directory, by default, unless otherwise specified.
-// Tools can be any filetype.
-// Agents will have children tags that are tools and other agents. When there are other agents as tools, you should parse them recursively. They should also be treated - at runtime - as tools.
-
-// parsing xml should be simple.
-// It should be a matter of reading the file,
-// then parsing to the tag, its attributes as key value pairs (in the case of an attribute that has only the key, assume the value is boolean true)
-// then all of its children. Those should be parsed recursively in the same manner.
-
-// the parsed agent should be returned as a javascript object.
 
 const parseAgentFileByName = (name) => {
     // if the name ends with "agent, or "Agent", replace ageent with empty string
@@ -149,7 +134,6 @@ const loadAgentMetadata = (agentName, tag, isRoot = false) => {
         isTool: false,
         isAgent: true,
         description: tag.attributes.description || '',
-        // this should be input_schema for a tool for claude that just takes a prompt
         input_schema: {
             type: "object",
             properties: {

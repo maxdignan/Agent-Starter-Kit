@@ -1,6 +1,5 @@
 const llm = require('./utils/llm');
 
-// Agent class implementation based on usage in agentParser.js and agentRuntime.js
 class Agent {
     constructor(parsed) {
         this.tag = parsed.tag;
@@ -28,7 +27,6 @@ class Agent {
         return this.attributes.systemPrompt || '';
     }
 
-    // this should return a callable object that has a run method that takes a system prompt, tools, and messages and calls an LLM. In this case, the llm will be claude-3.5-sonnet.
     getModel() {
         return {
             run: async (systemPrompt, tools, messages) => {
